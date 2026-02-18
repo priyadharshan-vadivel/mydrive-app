@@ -95,7 +95,11 @@ def delete_image(image_id):
     conn.close()
     return redirect(url_for('index'))
 
-if __name__ == '__main__':
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    init_db()
-    app.run(debug=True)
+# Replace with this:
+import tempfile
+
+UPLOAD_FOLDER = '/tmp/uploads'
+DATABASE = '/tmp/database.db'
+
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+init_db()
