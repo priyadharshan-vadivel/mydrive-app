@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyDrive - Image Upload</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f8f9fa; color: #333; }
+
+        /* Header */
+        .header {
+            background: #fff;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 14px 30px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            position: sticky; top: 0; z-index: 100;
+        }
+        .header-logo { font-size: 22px; font-weight: 700; color: #1a73e8; display: flex; align-items: center; gap: 8px; }
+        .header-logo span { color: #ea4335; }
+
+        /* Upload Section */
+        .upload-section { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+
+        .upload-card {
+            background: #fff;
+            border: 2px dashed #c5cae9;
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            transition: border-color 0.3s, background 0.3s;
+            cursor: pointer;
+        }
+        .upload-card:hover, .upload-card.dragover {
+            border-color: #1a73e8;
+            background: #f0f4ff;
+        }
+        .upload-icon { font-size: 52px; margin-bottom: 16px; }
+        .upload-card h2 { font-size: 20px; margin-bottom: 8px; color: #333; }
+        .upload-card p { color: #777; font-size: 14px; margin-bottom: 20px; }
+
+        .btn-upload {
+            background: #1a73e8;
+            color: #fff;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 8px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-upload:hover { background: #1558b0; }
+
+        #fileInput { display: none; }
+
+        /* Flash Messages */
+        .flash-messages { max-width: 900px; margin: 16px auto 0; padding: 0 20px; }
+        .flash {
+            padding: 14px 18px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .flash.success { background: #e6f4ea; color: #137333; border: 1px solid #a8d5b5; }
+        .flash.error   { background: #fce8e6; color: #c5221f; border: 1px solid #f5c6c4; }
+
+        /* Gallery Section */
+        .gallery-section { max-width: 900px; margin: 28px auto 40px; padding: 0 20px; }
+        .gallery-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 18px;
+        }
+        .gallery-header h3 { font-size: 18px; color: #333; }
+        .image-count { background: #e8f0fe; color: #1a73e8; padding: 3px 10px; border-radius: 12px; font-size: 13px; }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .image-card {
+            background: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .image-card:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.13); }
+
+        .image-card img {
+            width: 100%; height: 160px; object-fit: cover;
+            cursor: pointer; display: block;
+        }
+
+        .image-info { padding: 10px 12px; }
+        .image-name {
+            font-size: 13px; font-weight: 600; color: #333;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+        .image-meta { font-size: 11px; color: #999; margin-bottom: 8px; }
+
+        .btn-delete {
+            background: #fce8e6; color: #c5221f; border: none;
+            padding: 5px 12px; border-radius: 6px; font-size: 12px;
+            cursor: pointer; width: 100%; transition: background 0.2s;
+        }
+        .btn-delete:hover { background: #f5c6c4; }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: #aaa; }
+        .empty-state .empty-icon { font-size: 60px; margin-bottom: 16px; }
+        .empty-state p { font-size: 16px; }
+
+        /* Lightbox */
+        .lightbox {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.85); z-index: 999;
+            justify-content: center; align-items: center;
+        }
+        .lightbox.active { display: flex; }
+        .lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 8px; }
+        .lightbox-close {
+            position: absolute; top: 20px; right: 28px;
+            color: #fff; font-size: 36px; cursor: pointer;
+            line-height: 1;
+        }
+
+        /* Selected file preview */
+        #selectedFile { margin-top: 12px; font-size: 13px; color: #555; min-height: 18px; }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+    <div class="header-logo">
+        ☁️ My<span>Drive</span>
+    </div>
+</div>
+
+<!-- Flash Messages -->
+<div class="flash-messages">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</div>
+
+<!-- Upload Section -->
+<div class="upload-section">
+    <form id="uploadForm" action="/upload" method="POST" enctype="multipart/form-data">
+        <div class="upload-card" id="dropZone">
+            <div class="upload-icon">📁</div>
+            <h2>Upload Images to MyDrive</h2>
+            <p>Drag & drop images here, or click to browse<br>Supports JPG, JPEG, PNG • Max 16MB</p>
+            <button type="button" class="btn-upload" onclick="document.getElementById('fileInput').click()">
+                Choose Files
+            </button>
+            <input type="file" id="fileInput" name="file" accept=".jpg,.jpeg,.png" onchange="handleFileSelect(this)">
+            <div id="selectedFile"></div>
+        </div>
+    </form>
+</div>
+
+<!-- Gallery Section -->
+<div class="gallery-section">
+    <div class="gallery-header">
+        <h3>My Images</h3>
+        <span class="image-count">{{ images|length }} file{% if images|length != 1 %}s{% endif %}</span>
+    </div>
+
+    {% if images %}
+    <div class="gallery-grid">
+        {% for image in images %}
+        <div class="image-card">
+            <img src="{{ url_for('static', filename='uploads/' + image['filename']) }}"
+                 alt="{{ image['original_name'] }}"
+                 onclick="openLightbox(this.src)"
+                 title="Click to preview">
+            <div class="image-info">
+                <div class="image-name" title="{{ image['original_name'] }}">{{ image['original_name'] }}</div>
+                <div class="image-meta">
+                    📅 {{ image['upload_time'] }}<br>
+                    💾 {{ (image['file_size'] / 1024) | round(1) }} KB
+                </div>
+                <form action="/delete/{{ image['id'] }}" method="POST" onsubmit="return confirm('Delete this image?')">
+                    <button type="submit" class="btn-delete">🗑️ Delete</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">🖼️</div>
+        <p>No images uploaded yet. Start by uploading your first image!</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+    <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
+    <img id="lightboxImg" src="" alt="Preview">
+</div>
+
+<script>
+    function handleFileSelect(input) {
+        const file = input.files[0];
+        if (file) {
+            document.getElementById('selectedFile').textContent = `Selected: ${file.name}`;
+            document.getElementById('uploadForm').submit();
+        }
+    }
+
+    // Drag & Drop
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            fileInput.files = files;
+            handleFileSelect(fileInput);
+        }
+    });
+
+    // Lightbox
+    function openLightbox(src) {
+        document.getElementById('lightboxImg').src = src;
+        document.getElementById('lightbox').classList.add('active');
+    }
+    function closeLightbox() {
+        document.getElementById('lightbox').classList.remove('active');
+    }
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLightbox(); });
+</script>
+</body>
+</html>
